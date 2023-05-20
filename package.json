@@ -18,6 +18,9 @@
     "ts-node": "^10.9.1",
     "@mbauer83/ts-functional": "^0.2.0"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
     "build": "./node_modules/typescript/bin/tsc"
