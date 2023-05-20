@@ -69,9 +69,10 @@ export class GenericInitializingDomainEvent<
 > extends BaseJSONSerializable implements InitializingDomainEvent<AggregateTypeName, AggregateStateType, T> {
     public readonly id: string;
     public readonly type: AggregateTypeName;
+    public readonly aggregateId: string;
     public readonly snapshot: Aggregate<AggregateTypeName, AggregateStateType>;
     public readonly metadata: EventMetadata;
-    content: never;
+    public readonly content: T;
 
     isInitial(): this is InitializingDomainEvent<AggregateTypeName, AggregateStateType, any> {
         return true;
@@ -79,15 +80,16 @@ export class GenericInitializingDomainEvent<
 
     constructor(
         id: string,
-        type: AggregateTypeName,
-        snapshot: Aggregate<AggregateTypeName, AggregateStateType>,
+        payload: T,
         metadata: EventMetadata
     ) {
         super();
         this.id = id;
-        this.type = type;
-        this.snapshot = snapshot;
+        this.type = payload.aggregateTypeName;
+        this.snapshot = payload.snapshot;
+        this.aggregateId = payload.aggregateId;
         this.metadata = metadata;
+        this.content = payload;
     }
 
     compare(t1: Event<AggregateType, T>, t2: Event<AggregateType, T>): number {
@@ -111,7 +113,7 @@ export class GenericBasicDomainEvent<
     public readonly metadata: EventMetadata;
     public readonly newAggregateVersion: number;
     protected readonly applicator: (s: AggregateStateType) => AggregateStateType;
-    content: never;
+    public readonly content: T;
 
     isInitial(): this is InitializingDomainEvent<AggregateTypeName, AggregateStateType, any> {
         return false;
@@ -119,16 +121,17 @@ export class GenericBasicDomainEvent<
 
     constructor(
         id: string,
-        type: AggregateTypeName,
+        payload: T,
         metadata: EventMetadata,
-        newAggregateVersion: number,
         applicator: (s: AggregateStateType) => AggregateStateType
     ) {
         super();
         this.id = id;
-        this.type = type;
+        this.type = payload.aggregateTypeName;
         this.metadata = metadata;
-        this.newAggregateVersion = newAggregateVersion;
+        this.newAggregateVersion = payload.newAggregateVersion;
+        this.aggregateId = payload.aggregateId;
+        this.content = payload;
         this.applicator = applicator;
     }
 

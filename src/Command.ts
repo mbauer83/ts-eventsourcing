@@ -38,11 +38,11 @@ export class GenericInitializationCommand<AggregateTypeName extends AggregateTyp
 
     readonly aggregateTypeName: AggregateTypeName;
     readonly metadata: EventMetadata;
-    readonly content: never;
     readonly id: string;
     readonly aggregateId: string;
     readonly state: AggregateStateType;
     readonly payload: T;
+    readonly content: T;
 
     constructor(
         id: string,
@@ -56,6 +56,7 @@ export class GenericInitializationCommand<AggregateTypeName extends AggregateTyp
         this.state = payload.state;
         this.metadata = { timestampMs: createdAt.getTime(), issuer: issuer }
         this.payload = payload;
+        this.content = payload;
     }
 
 }
@@ -64,7 +65,7 @@ export class GenericBasicCommand<AggregateTypeName extends AggregateType, Aggreg
 
     readonly aggregateTypeName: AggregateTypeName;
     readonly metadata: EventMetadata;
-    readonly content: never;
+    readonly content: T;
     readonly id: string;
     readonly aggregateId: string;
     readonly appliesToVersion: number;
@@ -82,6 +83,7 @@ export class GenericBasicCommand<AggregateTypeName extends AggregateType, Aggreg
         this.appliesToVersion = payload.appliesToVersion;
         this.metadata = { timestampMs: createdAt.getTime(), issuer: issuer }
         this.payload = payload;
+        this.content = payload;
     }
 
 }

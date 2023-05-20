@@ -36,19 +36,19 @@ export abstract class BaseStringSerializale {
 }
 
 export function ClassDefinesSerializer<T extends { new (...args: any[]): {} }>(constructor: T) {
-    return function (constructor) {
+    return function () {
         Reflect.defineMetadata(ClassDefinesSerializerMetadataKey, true, constructor);
     }
 }
 
 export function ClassDefinesStringSerializer<T extends { new (...args: any[]): {} }>(constructor: T) {
-    return function (constructor) {
+    return function () {
         Reflect.defineMetadata(ClassDefinesStringSerializerMetadataKey, true, constructor);
     }
 }
 
 export function ClassDefinesJSONSerializer<T extends { new (...args: any[]): {} }>(constructor: T) {
-    return function (constructor) {
+    return function () {
         Reflect.defineMetadata(ClassDefinesJSONSerializerMetadataKey, true, constructor);
     }
 }
@@ -77,11 +77,12 @@ export function serializeToString(val: Date|boolean|number|symbol|object): strin
     if (Reflect.hasMetadata(ClassDefinesSerializerMetadataKey, val)) {
         return (val as { serialize(): string }).serialize();
     }
-    const strObj = {};
-    for (const propName in val as object) {
+    const strObj: Record<string, any> = {};
+    const objVal = val as object;
+    for (const propName in objVal) {
         if (Reflect.hasMetadata(SerializedPropertyMetadataKey, val, propName)) {
-            const serializationName = Reflect.getMetadata(SerializedPropertyMetadataKey, val, propName);
-            const rawValue = val[propName];
+            const serializationName: string = Reflect.getMetadata(SerializedPropertyMetadataKey, val, propName);
+            const rawValue = objVal[propName as keyof typeof objVal];
             if (typeof rawValue === "object") {
                 const ownProps = Object.getOwnPropertyNames(rawValue);
                 for (const innerPropNames of ownProps) {
@@ -109,12 +110,12 @@ export function serializeToJSON(val: Date|boolean|string|number|symbol|object): 
     if (typeof val === "object" && Reflect.hasMetadata(ClassDefinesJSONSerializerMetadataKey, val)) {
         return (val as { serialize(): string }).serialize();
     }
-    const strObj = {};
+    const strObj: Record<string, any> = {};
     const props = Object.getOwnPropertyNames(val as object);
     for (const propName of props) {
         if (Reflect.hasMetadata(SerializedPropertyMetadataKey, val, propName)) {
-            const serializationName = Reflect.getMetadata(SerializedPropertyMetadataKey, val, propName);
-            const rawValue = val[propName];
+            const serializationName: string = Reflect.getMetadata(SerializedPropertyMetadataKey, val, propName);
+            const rawValue = val[propName as keyof typeof val];
             if (typeof rawValue !== "string") {
                 strObj[serializationName] = serializeToJSON(rawValue);
             } else {

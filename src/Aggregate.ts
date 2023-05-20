@@ -52,7 +52,7 @@ export abstract class BaseAggregate<Type extends AggregateType, State> {
             });
             return new Right(this.withState(currState, currVersion));
         } catch (e) {
-            return new Left(e);
+            return new Left(e as Error);
         }
     }
 
