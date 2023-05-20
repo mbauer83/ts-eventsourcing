@@ -160,7 +160,7 @@ export class InMemoryDomainEventStorage implements EventStorage {
 
     produceEventsForTypesAsync<T extends string[]>(typesAggregateIdsMinVersions: [T[keyof T], Optional<string>, Optional<number>][], fromDate: Optional<Date>): { [I in keyof T]: AsyncGenerator<Event<T[I], any>, any, unknown>; } {
         const newThis = this;
-        const record = {};
+        const record: Record<string, AsyncGenerator<Event<any, any>, any, unknown>> = {};
         for (const [typeName, aggregateId, fromVersion] of typesAggregateIdsMinVersions) {
             const generator = async function* () {
                 const list: Event<any, any>[] = newThis.allEventsByType[typeName as string] ?? [];
