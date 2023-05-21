@@ -1,5 +1,5 @@
-import {type EventListener} from './EventListener';
-import {type Event} from './Event';
+import {type EventListener} from './EventListener.js';
+import {type Event} from './Event.js';
 
 export interface EventDispatcher {
 	registerListeners(...listeners: Array<EventListener<any>>): void;

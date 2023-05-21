@@ -1,6 +1,6 @@
-import {type Message} from './Message';
-import {type AggregateType} from './Aggregate';
-import {type EventMetadata} from './Event';
+import {type Message} from './Message.js';
+import {type AggregateType} from './Aggregate.js';
+import {type EventMetadata} from './Event.js';
 
 export type CommandMetadata = {timestampMs: number; issuer: string};
 

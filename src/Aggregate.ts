@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
-import {type Either, Left, Right} from '@mbauer83/ts-functional/src/Either';
-import {type BaseCommandPayload, type Command} from './Command';
-import {type BasicDomainEvent, type InitializingDomainEvent, type SnapshotDomainEvent} from './DomainEvent';
+import {type Either, Left, Right} from '@mbauer83/ts-functional/src/Either.js';
+import {type BaseCommandPayload, type Command} from './Command.js';
+import {type BasicDomainEvent, type InitializingDomainEvent, type SnapshotDomainEvent} from './DomainEvent.js';
 
 export type AggregateType = string;
 

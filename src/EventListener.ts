@@ -1,4 +1,4 @@
-import {type Event} from './Event';
+import {type Event} from './Event.js';
 
 export interface EventListener<T1 extends string> {
 	eventTypes: T1[];

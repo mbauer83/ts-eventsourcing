@@ -1,6 +1,6 @@
-import {type Optional} from '@mbauer83/ts-functional/src/Optional';
-import {defaultEventComparator, type Event} from './Event';
-import {isSnapshotDomainEvent, type BasicDomainEvent, type DomainEvent, type InitializingDomainEvent, type SnapshotDomainEvent, isBasicDomainEvent, isDomainEvent} from './DomainEvent';
+import {type Optional} from '@mbauer83/ts-functional/src/Optional.js';
+import {defaultEventComparator, type Event} from './Event.js';
+import {isSnapshotDomainEvent, type BasicDomainEvent, type DomainEvent, type InitializingDomainEvent, type SnapshotDomainEvent, isBasicDomainEvent, isDomainEvent} from './DomainEvent.js';
 
 export interface EventStorage {
 	produceEvents<T extends string>(type: T, aggregateId: Optional<string>, fromDate: Optional<Date>, fromVersion: Optional<number>): Generator<Event<T, any>>;

@@ -1,5 +1,5 @@
-import {type Aggregate, type AggregateType} from './Aggregate';
-import {defaultEventComparator, type Event, type EventMetadata} from './Event';
+import {type Aggregate, type AggregateType} from './Aggregate.js';
+import {defaultEventComparator, type Event, type EventMetadata} from './Event.js';
 
 export type BaseDomainEventPayload<T extends AggregateType> = {aggregateTypeName: T; aggregateId: string};
 

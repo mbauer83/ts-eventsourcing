@@ -1,6 +1,6 @@
-import {type Optional} from '@mbauer83/ts-functional/src/Optional';
-import {type Event} from './Event';
-import {type Projection} from './Projection';
+import {type Optional} from '@mbauer83/ts-functional/src/Optional.js';
+import {type Event} from './Event.js';
+import {type Projection} from './Projection.js';
 
 export interface Projector<T> {
 	eventTypes: string[];

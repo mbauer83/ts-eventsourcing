@@ -1,5 +1,5 @@
-import {type Message} from './Message';
-import {type Orderable} from './Orderable';
+import {type Message} from './Message.js';
+import {type Orderable} from './Orderable.js';
 
 export type EventMetadata = Record<string, any> & {timestampMs: number; issuer: string};
 
