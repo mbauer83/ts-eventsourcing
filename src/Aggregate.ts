@@ -58,7 +58,13 @@ export abstract class BaseAggregate<Type extends AggregateType, State> {
 
 	tryApplyCommand<T extends BaseCommandPayload<Type>>(command: Command<Type, State, T>, eventDispatcher: EventDispatcher): Either<Error, Aggregate<Type, State>> {
 		const eventsOrError = this.eventsForCommand(command);
-		return eventsOrError.flatMap(events => this.withAppliedEvents(events));
+		const changedAggregate = eventsOrError.flatMap(events => this.withAppliedEvents(events));
+		if (changedAggregate.isRight()) {
+			const events = eventsOrError.get() as Array<BasicDomainEvent<Type, State, any>>;
+			eventDispatcher.dispatchEvents(...events);
+		}
+
+		return changedAggregate;
 	}
 
 	protected abstract withState(s: State, newVersion: number): Aggregate<Type, State>;
