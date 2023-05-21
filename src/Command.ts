@@ -84,3 +84,9 @@ export class CommandDoesNotApplyToAggregateVersionError extends Error {
 		super(`Command for aggregate type [${aggregateType}] and id [${aggregateId}] applies to version [${commandAppliesToVersion}] - aggregate has version [${aggregateVersion}].`);
 	}
 }
+
+export class CommandNotHandledError extends Error {
+	constructor(commandType: string, aggregateType: AggregateType) {
+		super(`Command of type [${commandType}] is not handled by aggregate of type [${aggregateType}].`);
+	}
+}

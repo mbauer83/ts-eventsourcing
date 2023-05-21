@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
-import {type Either, Left, Right} from '@mbauer83/ts-functional/src/Either.js';
-import {type BaseCommandPayload, type Command} from './Command.js';
+import {type Either, Left, Right, eitherFromFnOrErrorFn} from '@mbauer83/ts-functional/src/Either.js';
+import {isBasicCommand, type BaseCommandPayload, type Command, CommandDoesNotApplyToAggregateVersionError, type BasicCommand, type BasicCommandPayload} from './Command.js';
 import {type BasicDomainEvent, type InitializingDomainEvent, type SnapshotDomainEvent} from './DomainEvent.js';
 import {type EventDispatcher} from './EventDispatcher.js';
 
@@ -57,7 +57,18 @@ export abstract class BaseAggregate<Type extends AggregateType, State> {
 	}
 
 	tryApplyCommand<T extends BaseCommandPayload<Type>>(command: Command<Type, State, T>, eventDispatcher: EventDispatcher): Either<Error, Aggregate<Type, State>> {
-		const eventsOrError = this.eventsForCommand(command);
+		const trueOrWrongVersionError
+			= eitherFromFnOrErrorFn(
+				() => new CommandDoesNotApplyToAggregateVersionError(
+					this.constructor.name,
+					this.id,
+					(command as BasicCommand<Type, State, T & BasicCommandPayload<Type>>).appliesToVersion,
+					this.version,
+				),
+				() => isBasicCommand(command) && command.appliesToVersion === this.version,
+			);
+
+		const eventsOrError = trueOrWrongVersionError.flatMap(_ => this.eventsForCommand(command));
 		const changedAggregate = eventsOrError.flatMap(events => this.withAppliedEvents(events));
 		if (changedAggregate.isRight()) {
 			const events = eventsOrError.get() as Array<BasicDomainEvent<Type, State, any>>;
@@ -85,5 +96,11 @@ export function createFromSnapshot<TypeName extends AggregateType, StateType>(
 ): Either<Error, Aggregate<TypeName, StateType>> {
 	const snapshotAggregate = snapshotEvent.snapshot;
 	return snapshotAggregate.withAppliedEvents(events);
+}
+
+export class AggregateMustBeCreatedFromFactoryError extends Error {
+	constructor(aggregateType: AggregateType) {
+		super(`Aggregate of type [${aggregateType}] must be created from factory method.`);
+	}
 }
 
