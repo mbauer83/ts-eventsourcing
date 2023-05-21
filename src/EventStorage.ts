@@ -47,8 +47,7 @@ export class InMemoryDomainEventStorage implements EventStorage {
 				continue;
 			}
 
-			const aggregate = (evt as SnapshotDomainEvent<any, any, any>).snapshot;
-			const aggregateId = aggregate.id;
+			const aggregateId = evt.getAggregateId();
 			const byAggregateId = this.basicEventsByTypeAndId[evt.type] ?? {};
 			const listForAggregateId: Array<BasicDomainEvent<any, any, any>> = byAggregateId[aggregateId] ?? [];
 			listForAggregateId.push(evt as SnapshotDomainEvent<any, any, any>);

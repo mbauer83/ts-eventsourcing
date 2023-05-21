@@ -1,7 +1,7 @@
 {
   "name": "@mbauer83/ts-eventsourcing",
   "type": "module",
-  "version": "v0.4.1",
+  "version": "v0.4.2",
   "repository": "https://github.com/mbauer83/ts-eventsourcing.git",
   "devDependencies": {
     "reflect-metadata": "^0.1.13",
