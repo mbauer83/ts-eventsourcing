@@ -34,12 +34,12 @@ export interface EventStorage {
 			Optional<string>,
 			Optional<number>]>,
 		fromDate: Optional<Date>,
-	): Task<Error, Record<T[number], () => Generator<Event<T[number], any>>>>;
+	): Task<Error, Record<T[keyof T extends number ? number : never], () => Generator<Event<T[number], any>>>>;
 
 	produceEventsForTypesAsync<T extends AggregateType[]>(
 		typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
 		fromDate: Optional<Date>,
-	): AsyncTask<Error, Record<T[number], () => AsyncGenerator<Event<T[number], any>>>>;
+	): AsyncTask<Error, Record<T[keyof T extends number ? number : never], () => AsyncGenerator<Event<T[number], any>>>>;
 
 	storeEvents(...events: Array<Event<any, any>>): AsyncIO<void>;
 }
@@ -166,7 +166,7 @@ export class InMemoryDomainEventStorage implements EventStorage {
 	produceEventsForTypes<T extends AggregateType[]>(
 		typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
 		fromDate: Optional<Date>,
-	): Task<Error, Record<T[number], () => Generator<Event<T[number], any>>>> {
+	): Task<Error, Record<T[keyof T extends number ? number : never], () => Generator<Event<T[number], any>>>> {
 		const resolver = () => {
 			// We need an alias for this because we can't use arrow-functions for generators
 			// eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
@@ -204,7 +204,7 @@ export class InMemoryDomainEventStorage implements EventStorage {
 	produceEventsForTypesAsync<T extends AggregateType[]>(
 		typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
 		fromDate: Optional<Date>,
-	): AsyncTask<Error, Record<AggregateType, () => AsyncGenerator<Event<T[number], any>>>> {
+	): AsyncTask<Error, Record<T[keyof T extends number ? number : never], () => AsyncGenerator<Event<T[number], any>>>> {
 		const resolver = async () => {
 			// We need an alias for this because we can't use arrow-functions for generators
 			// eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
