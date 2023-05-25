@@ -8,10 +8,16 @@ export interface Event<Type extends string, MessageContent> extends Message<Mess
 	readonly type: Type;
 }
 
-export const defaultEventComparator = (event1: Event<any, any>, event2: Event<any, any>) => event1.metadata.timestampMs < event2.metadata.timestampMs
-	? -1
-	: (
-		event1.metadata.timestampMs === event2.metadata.timestampMs
-		    ? 0
-		    : 1
-	);
+export type EventOrderable = Orderable<Event<any, unknown>>;
+
+export const defaultEventComparator: EventOrderable = {
+	compare(event1: Event<any, any>, event2: Event<any, any>): -1 | 0 | 1 {
+		return event1.metadata.timestampMs < event2.metadata.timestampMs
+			? -1
+			: (
+				event1.metadata.timestampMs === event2.metadata.timestampMs
+					? 0
+					: 1
+			);
+	},
+} as const;

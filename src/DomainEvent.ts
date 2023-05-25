@@ -63,7 +63,8 @@ export function isBasicDomainEvent<T extends string, S>(domainEvent: DomainEvent
 export function isSnapshotDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is SnapshotDomainEvent<T, S, any> {
 	const hasProp = Object.prototype.hasOwnProperty;
 	const hasSnapshot = hasProp.call(domainEvent, 'snapshot');
-	return !domainEvent.isInitial() && hasSnapshot;
+	const isSnapshotDomainEvent = !domainEvent.isInitial() && hasSnapshot;
+	return isSnapshotDomainEvent;
 }
 
 export class GenericInitializingDomainEvent<
@@ -89,12 +90,12 @@ export class GenericInitializingDomainEvent<
 		this.content = payload;
 	}
 
-	isInitial(): this is InitializingDomainEvent<AggregateTypeName, AggregateStateType, any> {
-		return true;
+	compare(t1: Event<AggregateTypeName, T>, t2: Event<AggregateTypeName, T>): -1 | 0 | 1 {
+		return defaultEventComparator.compare(t1, t2);
 	}
 
-	compare(t1: Event<AggregateType, T>, t2: Event<AggregateType, T>): number {
-		return defaultEventComparator(t1, t2) as number;
+	isInitial(): this is InitializingDomainEvent<AggregateTypeName, AggregateStateType, any> {
+		return true;
 	}
 
 	getAggregateId(): string {
@@ -132,8 +133,8 @@ export class GenericBasicDomainEvent<
 		return false;
 	}
 
-	compare(t1: Event<AggregateType, T>, t2: Event<AggregateType, T>): number {
-		return defaultEventComparator(t1, t2);
+	compare(t1: Event<AggregateType, T>, t2: Event<AggregateType, T>): -1 | 0 | 1 {
+		return defaultEventComparator.compare(t1, t2);
 	}
 
 	getAggregateId(): string {
