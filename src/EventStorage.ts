@@ -33,12 +33,12 @@ export interface EventStorage {
     	Optional<string>,
     	Optional<number>]>,
     	fromDate: Optional<Date>,
-	): Task<Error, {[I in keyof T]: () => Generator<Event<T[I], any>>}>;
+	): Task<Error, Record<number, () => Generator<Event<T[number], any>>>>;
 
 	produceEventsForTypesAsync<T extends string[]>(
     	typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
     	fromDate: Optional<Date>,
-	): AsyncTask<Error, {[I in keyof T]: () => AsyncGenerator<Event<T[I], any>>}>;
+	): AsyncTask<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>>;
 
 	storeEvents(...events: Array<Event<any, any>>): AsyncIO<void>;
 }
@@ -165,7 +165,7 @@ export class InMemoryDomainEventStorage implements EventStorage {
 	produceEventsForTypes<T extends string[]>(
     	typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
     	fromDate: Optional<Date>,
-	): Task<Error, {[I in keyof T]: () => Generator<Event<T[I], any>>}> {
+	): Task<Error, Record<number, () => Generator<Event<T[number], any>>>> {
 		const resolver = () => {
 			// We need an alias for this because we can't use arrow-functions for generators
 			// eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
@@ -194,16 +194,16 @@ export class InMemoryDomainEventStorage implements EventStorage {
 				record[typeName as string] = generator;
 			}
 
-			return new Right<Error, {[I in keyof T]: () => Generator<Event<T[I], any>>}>(record as {[I in keyof T]: () => Generator<Event<T[I], any>>});
+			return new Right<Error, Record<number, () => Generator<Event<T[number], any>>>>(record);
 		};
 
-		return new Task<Error, {[I in keyof T]: () => Generator<Event<T[I], any>>}>(resolver);
+		return new Task<Error, Record<number, () => Generator<Event<T[number], any>>>>(resolver);
 	}
 
 	produceEventsForTypesAsync<T extends string[]>(
     	typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
     	fromDate: Optional<Date>,
-	): AsyncTask<Error, {[I in keyof T]: () => AsyncGenerator<Event<T[I], any>>}> {
+	): AsyncTask<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>> {
 		const resolver = async () => {
 			// We need an alias for this because we can't use arrow-functions for generators
 			// eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
@@ -232,10 +232,10 @@ export class InMemoryDomainEventStorage implements EventStorage {
 				record[typeName as string] = generator;
 			}
 
-			return new Right<Error, {[I in keyof T]: () => AsyncGenerator<Event<T[I], any>>}>(record as {[I in keyof T]: () => AsyncGenerator<Event<T[I], any>>;});
+			return new Right<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>>(record);
 		};
 
-		return new AsyncTask<Error, {[I in keyof T]: () => AsyncGenerator<Event<T[I], any>>}>(resolver);
+		return new AsyncTask<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>>(resolver);
 	}
 
 	protected filterByAggregateId<T extends string>(
