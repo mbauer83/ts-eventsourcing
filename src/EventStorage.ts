@@ -13,41 +13,42 @@ import {
 	isBasicDomainEvent,
 	isDomainEvent,
 } from './DomainEvent.js';
+import {type AggregateType} from './Aggregate';
 
 export interface EventStorage {
-	produceEvents<T extends string>(
-    	type: T,
-    	aggregateId: Optional<string>,
-    	fromDate: Optional<Date>,
-    	fromVersion: Optional<number>,
+	produceEvents<T extends AggregateType>(
+		type: T,
+		aggregateId: Optional<string>,
+		fromDate: Optional<Date>,
+		fromVersion: Optional<number>,
 	): Task<Error, () => Generator<Event<T, any>>>;
 
-	produceEventsAsync<T extends string>(
-    	type: T,
-    	aggregateId: Optional<string>,
-    	fromDate: Optional<Date>, fromVersion: Optional<number>,
+	produceEventsAsync<T extends AggregateType>(
+		type: T,
+		aggregateId: Optional<string>,
+		fromDate: Optional<Date>, fromVersion: Optional<number>,
 	): AsyncTask<Error, () => AsyncGenerator<Event<T, any>>>;
 
-	produceEventsForTypes<T extends string[]>(
-    	typesAggregateIdsMinVersions: Array<[T[keyof T],
-    	Optional<string>,
-    	Optional<number>]>,
-    	fromDate: Optional<Date>,
-	): Task<Error, Record<number, () => Generator<Event<T[number], any>>>>;
+	produceEventsForTypes<T extends AggregateType[]>(
+		typesAggregateIdsMinVersions: Array<[T[keyof T],
+			Optional<string>,
+			Optional<number>]>,
+		fromDate: Optional<Date>,
+	): Task<Error, Record<T[number], () => Generator<Event<T[number], any>>>>;
 
-	produceEventsForTypesAsync<T extends string[]>(
-    	typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
-    	fromDate: Optional<Date>,
-	): AsyncTask<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>>;
+	produceEventsForTypesAsync<T extends AggregateType[]>(
+		typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
+		fromDate: Optional<Date>,
+	): AsyncTask<Error, Record<T[number], () => AsyncGenerator<Event<T[number], any>>>>;
 
 	storeEvents(...events: Array<Event<any, any>>): AsyncIO<void>;
 }
 
 export class InMemoryDomainEventStorage implements EventStorage {
-	private allEventsByType: Record<string, Array<Event<any, any>>> = {};
-	private basicEventsByTypeAndId: Record<string, Record<string, Array<BasicDomainEvent<any, any, any>>>> = {};
-	private snapshotEventsByTypeAndId: Record<string, Record<string, Array<SnapshotDomainEvent<any, any, any>>>> = {};
-	private initialEventsByTypeAndId: Record<string, Record<string, InitializingDomainEvent<any, any, any>>> = {};
+	private allEventsByType: Record<AggregateType, Array<Event<any, any>>> = {};
+	private basicEventsByTypeAndId: Record<AggregateType, Record<string, Array<BasicDomainEvent<any, any, any>>>> = {};
+	private snapshotEventsByTypeAndId: Record<AggregateType, Record<string, Array<SnapshotDomainEvent<any, any, any>>>> = {};
+	private initialEventsByTypeAndId: Record<AggregateType, Record<string, InitializingDomainEvent<any, any, any>>> = {};
 
 	storeEvents(...events: Array<DomainEvent<any, any, any>>): AsyncIO<void> {
 		const resolver = async (..._: any[]) => {
@@ -93,8 +94,8 @@ export class InMemoryDomainEventStorage implements EventStorage {
 		return new AsyncIO(resolver);
 	}
 
-	produceEvents<T extends string>(
-    	type: T,
+	produceEvents<T extends AggregateType>(
+		type: T,
 		aggregateId: Optional<string>,
 		fromDate: Optional<Date>,
 		fromVersion: Optional<number>,
@@ -128,8 +129,8 @@ export class InMemoryDomainEventStorage implements EventStorage {
 		return new Task<Error, () => Generator<Event<T, any>>>(resolver);
 	}
 
-	produceEventsAsync<T extends string>(
-    	type: T,
+	produceEventsAsync<T extends AggregateType>(
+		type: T,
 		aggregateId: Optional<string>,
 		fromDate: Optional<Date>, fromVersion: Optional<number>,
 	): AsyncTask<Error, () => AsyncGenerator<Event<T, any>>> {
@@ -162,15 +163,15 @@ export class InMemoryDomainEventStorage implements EventStorage {
 		return new AsyncTask<Error, () => AsyncGenerator<Event<T, any>>>(resolver);
 	}
 
-	produceEventsForTypes<T extends string[]>(
-    	typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
-    	fromDate: Optional<Date>,
-	): Task<Error, Record<number, () => Generator<Event<T[number], any>>>> {
+	produceEventsForTypes<T extends AggregateType[]>(
+		typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
+		fromDate: Optional<Date>,
+	): Task<Error, Record<T[number], () => Generator<Event<T[number], any>>>> {
 		const resolver = () => {
 			// We need an alias for this because we can't use arrow-functions for generators
 			// eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
 			const newThis = this;
-			const record: Record<string, () => Generator<Event<any, any>>> = {};
+			const record: Record<AggregateType, () => Generator<Event<any, any>>> = {};
 			for (const [typeName, aggregateId, fromVersion] of typesAggregateIdsMinVersions) {
 				const generator = function * () {
 					const list: Array<Event<any, any>> = newThis.allEventsByType[typeName as string] ?? [];
@@ -194,21 +195,21 @@ export class InMemoryDomainEventStorage implements EventStorage {
 				record[typeName as string] = generator;
 			}
 
-			return new Right<Error, Record<number, () => Generator<Event<T[number], any>>>>(record);
+			return new Right<Error, Record<T[number], () => Generator<Event<T[number], any>>>>(record);
 		};
 
-		return new Task<Error, Record<number, () => Generator<Event<T[number], any>>>>(resolver);
+		return new Task<Error, Record<T[number], () => Generator<Event<T[number], any>>>>(resolver);
 	}
 
-	produceEventsForTypesAsync<T extends string[]>(
-    	typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
-    	fromDate: Optional<Date>,
-	): AsyncTask<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>> {
+	produceEventsForTypesAsync<T extends AggregateType[]>(
+		typesAggregateIdsMinVersions: Array<[T[keyof T], Optional<string>, Optional<number>]>,
+		fromDate: Optional<Date>,
+	): AsyncTask<Error, Record<AggregateType, () => AsyncGenerator<Event<T[number], any>>>> {
 		const resolver = async () => {
 			// We need an alias for this because we can't use arrow-functions for generators
 			// eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
 			const newThis = this;
-			const record: Record<string, () => AsyncGenerator<Event<any, any>>> = {};
+			const record: Record<AggregateType, () => AsyncGenerator<Event<any, any>>> = {};
 			for (const [typeName, aggregateId, fromVersion] of typesAggregateIdsMinVersions) {
 				const generator = async function * () {
 					const list: Array<Event<any, any>> = newThis.allEventsByType[typeName as string] ?? [];
@@ -232,15 +233,15 @@ export class InMemoryDomainEventStorage implements EventStorage {
 				record[typeName as string] = generator;
 			}
 
-			return new Right<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>>(record);
+			return new Right<Error, Record<T[number], () => AsyncGenerator<Event<T[number], any>>>>(record);
 		};
 
-		return new AsyncTask<Error, Record<number, () => AsyncGenerator<Event<T[number], any>>>>(resolver);
+		return new AsyncTask<Error, Record<T[number], () => AsyncGenerator<Event<T[number], any>>>>(resolver);
 	}
 
-	protected filterByAggregateId<T extends string>(
-    	aggregateId: Optional<string>,
-    	list: Array<DomainEvent<T, any, any>>,
+	protected filterByAggregateId<T extends AggregateType>(
+		aggregateId: Optional<string>,
+		list: Array<DomainEvent<T, any, any>>,
 	): Array<DomainEvent<T, any, any>> {
 		return aggregateId.match(
 			id => list.filter(element => element.getAggregateId() === id),
@@ -248,9 +249,9 @@ export class InMemoryDomainEventStorage implements EventStorage {
 		);
 	}
 
-	protected filterByDate<T extends string>(
-    	fromDate: Optional<Date>,
-    	list: Array<Event<T, any>>,
+	protected filterByDate<T extends AggregateType>(
+		fromDate: Optional<Date>,
+		list: Array<Event<T, any>>,
 	): Array<Event<T, any>> {
 		return fromDate.match(
 			date => list.filter(element => element.metadata.timestampMs >= date.getTime()),
@@ -258,9 +259,9 @@ export class InMemoryDomainEventStorage implements EventStorage {
 		);
 	}
 
-	protected filterByVersion<T extends string>(
-    	fromVersion: Optional<number>,
-    	list: Array<DomainEvent<T, any, any>>,
+	protected filterByVersion<T extends AggregateType>(
+		fromVersion: Optional<number>,
+		list: Array<DomainEvent<T, any, any>>,
 	): Array<DomainEvent<T, any, any>> {
 		return fromVersion.match(
 			version => list.filter(element => !isBasicDomainEvent(element) || element.newAggregateVersion >= version),
