@@ -4,6 +4,7 @@ import {Task} from '@mbauer83/ts-functional/src/Task.js';
 import {isBasicCommand, type BaseCommandPayload, type Command, CommandDoesNotApplyToAggregateVersionError, type BasicCommand, type BasicCommandPayload} from './Command.js';
 import {type BasicDomainEvent, type InitializingDomainEvent, type SnapshotDomainEvent} from './DomainEvent.js';
 import {type EventDispatcher} from './EventDispatcher.js';
+import {EventsCouldNotBeDispatchedError} from './Event.js';
 
 export type AggregateType = string;
 
@@ -80,7 +81,15 @@ export abstract class BaseAggregate<Type extends AggregateType, State> {
 			const changedAggregate = eventsOrError.flatMap(events => this.withAppliedEvents(events).evaluate());
 			if (changedAggregate.isRight()) {
 				const events = eventsOrError.get() as Array<BasicDomainEvent<Type, State, any>>;
-				eventDispatcher.dispatchEvents(...events);
+				const eventDispatchResult = eventDispatcher.dispatchEvents(...events).evaluate();
+				if (eventDispatchResult.isLeft()) {
+					return new Left<EventsCouldNotBeDispatchedError, Aggregate<Type, State>>(
+						new EventsCouldNotBeDispatchedError(
+							'Aggregate was modified, but events could not be dispatched.',
+							events,
+						),
+					);
+				}
 			}
 
 			return changedAggregate;

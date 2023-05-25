@@ -8,6 +8,12 @@ export interface Event<Type extends string, MessageContent> extends Message<Mess
 	readonly type: Type;
 }
 
+export class EventsCouldNotBeDispatchedError extends Error {
+	constructor(message: string, public readonly events: Array<Event<any, any>>) {
+		super(message);
+	}
+}
+
 export type EventOrderable = Orderable<Event<any, unknown>>;
 
 export const defaultEventComparator: EventOrderable = {
