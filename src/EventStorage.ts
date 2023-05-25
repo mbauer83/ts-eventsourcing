@@ -1,9 +1,9 @@
 import {type Optional} from '@mbauer83/ts-functional/src/Optional.js';
 import {AsyncIO} from '@mbauer83/ts-functional/src/AsyncIO.js';
-import {defaultEventComparator, type Event} from './Event.js';
 import {Task} from '@mbauer83/ts-functional/src/Task.js';
 import {AsyncTask} from '@mbauer83/ts-functional/src/AsyncTask.js';
 import {Right} from '@mbauer83/ts-functional/src/Either.js';
+import {defaultEventComparator, type Event} from './Event.js';
 import {
 	isSnapshotDomainEvent,
 	type BasicDomainEvent,
