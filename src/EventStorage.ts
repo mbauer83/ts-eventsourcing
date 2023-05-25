@@ -13,7 +13,7 @@ import {
 	isBasicDomainEvent,
 	isDomainEvent,
 } from './DomainEvent.js';
-import {type AggregateType} from './Aggregate';
+import {type AggregateType} from './Aggregate.js';
 
 export interface EventStorage {
 	produceEvents<T extends AggregateType>(
