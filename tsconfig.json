@@ -16,5 +16,10 @@
     "node_modules",
     "dist"
   ],
-
+  "ts-node": {
+    "moduleTypes": {
+      "./src/**/*.ts": "esm",
+      "./node_modules/**/*.ts": "esm",
+    }
+  }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@mbauer83/ts-eventsourcing",
   "type": "module",
-  "version": "v0.6.7",
+  "version": "v0.6.8",
   "repository": "https://github.com/mbauer83/ts-eventsourcing.git",
   "devDependencies": {
     "reflect-metadata": "^0.1.13",
@@ -22,7 +22,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "ts-node": "^10.9.1",
-    "@mbauer83/ts-functional": "^v0.7.4"
+    "@mbauer83/ts-functional": "^v0.7.5"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
