@@ -45,9 +45,7 @@ export interface SnapshotDomainEvent<
 }
 
 export function isDomainEvent<T extends string, S>(event: Event<T, any>): event is DomainEvent<T, S, any> {
-	const hasProp = Object.prototype.hasOwnProperty;
-	const isDomainEvent = hasProp.call(event, 'isInitial');
-	return isDomainEvent;
+	return 'isInitial' in event;
 }
 
 export function isInitializingDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is InitializingDomainEvent<T, S, any> {
@@ -55,15 +53,11 @@ export function isInitializingDomainEvent<T extends string, S>(domainEvent: Doma
 }
 
 export function isBasicDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is BasicDomainEvent<T, S, any> {
-	const hasProp = Object.prototype.hasOwnProperty;
-	const isBasicDomainEvent = hasProp.call(domainEvent, 'newAggregateVersion');
-	return isBasicDomainEvent;
+				return 'newAggregateVersion' in domainEvent;
 }
 
 export function isSnapshotDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is SnapshotDomainEvent<T, S, any> {
-	const hasProp = Object.prototype.hasOwnProperty;
-	const hasSnapshot = hasProp.call(domainEvent, 'snapshot');
-	const isSnapshotDomainEvent = !domainEvent.isInitial() && hasSnapshot;
+	const isSnapshotDomainEvent = !domainEvent.isInitial() && 'snapshot' in domainEvent;
 	return isSnapshotDomainEvent;
 }
 
