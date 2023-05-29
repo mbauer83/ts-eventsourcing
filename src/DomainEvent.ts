@@ -53,12 +53,11 @@ export function isInitializingDomainEvent<T extends string, S>(domainEvent: Doma
 }
 
 export function isBasicDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is BasicDomainEvent<T, S, any> {
-				return 'newAggregateVersion' in domainEvent;
+	return 'newAggregateVersion' in domainEvent;
 }
 
 export function isSnapshotDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is SnapshotDomainEvent<T, S, any> {
-	const isSnapshotDomainEvent = !domainEvent.isInitial() && 'snapshot' in domainEvent;
-	return isSnapshotDomainEvent;
+	return !domainEvent.isInitial() && 'snapshot' in domainEvent;
 }
 
 export class GenericInitializingDomainEvent<
