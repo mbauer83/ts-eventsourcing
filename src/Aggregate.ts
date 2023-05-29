@@ -8,6 +8,45 @@ import {EventsCouldNotBeDispatchedError} from './Event.js';
 
 export type AggregateType = string;
 
+export class VersionRange {
+	public static readonly empty = new VersionRange();
+
+	constructor(
+		public readonly minVersion: number | undefined = undefined,
+		public readonly maxVersion: number | undefined = undefined,
+		public readonly lowerBoundInclusive: boolean = false,
+		public readonly upperBoundInclusive: boolean = false,
+	) {}
+
+	isInRange(version: number): boolean {
+		return this.isWithinLowerBound(version) && this.isWithinUpperBound(version);
+	}
+
+	private readonly isWithinLowerBound: (version: number) => boolean = (version: number): boolean => {
+		if (this.minVersion === undefined) {
+			return true;
+		}
+
+		if (this.lowerBoundInclusive) {
+			return version >= this.minVersion;
+		}
+
+		return version > this.minVersion;
+	};
+
+	private readonly isWithinUpperBound: (version: number) => boolean = (version: number): boolean => {
+		if (this.maxVersion === undefined) {
+			return true;
+		}
+
+		if (this.upperBoundInclusive) {
+			return version <= this.maxVersion;
+		}
+
+		return version < this.maxVersion;
+	};
+}
+
 export interface Aggregate<TypeName extends AggregateType, StateType> {
 	readonly type: TypeName;
 	readonly id: string;
@@ -52,7 +91,7 @@ export abstract class BaseAggregate<Type extends AggregateType, State> {
 			try {
 				for (const evt of events) {
 					currState = evt.apply(currState);
-					currVersion = evt.newAggregateVersion;
+					currVersion = evt.getAggregateVersion();
 				}
 
 				return new Right(this.withState(currState, currVersion));
@@ -71,10 +110,10 @@ export abstract class BaseAggregate<Type extends AggregateType, State> {
 					() => new CommandDoesNotApplyToAggregateVersionError(
 						this.constructor.name,
 						this.id,
-						(command as BasicCommand<Type, State, T & BasicCommandPayload<Type>>).appliesToVersion,
+						(command as BasicCommand<Type, State, T & BasicCommandPayload<Type>>).appliesToVersion(),
 						this.version,
 					),
-					() => isBasicCommand(command) && command.appliesToVersion === this.version,
+					() => isBasicCommand(command) && command.appliesToVersion() === this.version,
 				);
 
 			const eventsOrError = trueOrWrongVersionError.flatMap(_ => this.eventsForCommand(command));
@@ -107,7 +146,7 @@ export function createFromInitialEvent<TypeName extends AggregateType, StateType
 	initialEvent: InitializingDomainEvent<TypeName, StateType, any>,
 	...events: Array<BasicDomainEvent<TypeName, StateType, any>>
 ): Either<Error, Aggregate<TypeName, StateType>> {
-	const initialAggregate = initialEvent.snapshot;
+	const initialAggregate = initialEvent.getSnapshot();
 	return initialAggregate.withAppliedEvents(events).evaluate();
 }
 
@@ -116,6 +155,6 @@ export function createFromSnapshot<TypeName extends AggregateType, StateType>(
 	snapshotEvent: SnapshotDomainEvent<TypeName, StateType, any>,
 	...events: Array<BasicDomainEvent<TypeName, StateType, any>>
 ): Either<Error, Aggregate<TypeName, StateType>> {
-	const snapshotAggregate = snapshotEvent.snapshot;
+	const snapshotAggregate = snapshotEvent.getSnapshot();
 	return snapshotAggregate.withAppliedEvents(events).evaluate();
 }

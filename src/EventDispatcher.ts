@@ -68,7 +68,7 @@ class DefaultEventDispatcher implements EventDispatcher {
 			const asyncIOs: Array<AsyncIO<void>> = [];
 			try {
 				for (const evt of events) {
-					const listOfListeners = this.listeners[evt.type] ?? [];
+					const listOfListeners = this.listeners[evt.getType()] ?? [];
 					const listenersOnAny = this.listeners.any ?? [];
 					for (const listener of listOfListeners) {
 						asyncIOs.push(innerDispatch(evt, listener));
@@ -99,7 +99,7 @@ class DefaultEventDispatcher implements EventDispatcher {
 			const asyncIOs: Array<AsyncIO<void>> = [];
 			try {
 				for (const evt of events) {
-					const listOfListeners = this.listeners[evt.type] ?? [];
+					const listOfListeners = this.listeners[evt.getType()] ?? [];
 					const listenersOnAny = this.listeners.any ?? [];
 					for (const listener of listOfListeners) {
 						asyncIOs.push(innerDispatch(evt, listener));

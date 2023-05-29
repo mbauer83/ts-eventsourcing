@@ -8,9 +8,10 @@ export interface DomainEvent<
 	AggregateStateType,
 	EventMessageType extends BaseDomainEventPayload<AggregateTypeName>,
 > extends Event<AggregateTypeName, EventMessageType> {
-	readonly type: AggregateTypeName;
+	getType(): AggregateTypeName;
 	isInitial(): this is InitializingDomainEvent<AggregateTypeName, AggregateStateType, any>;
 	getAggregateId(): string;
+	getAggregateVersion(): number;
 }
 
 export type InitializingDomainEventPayload<T extends AggregateType, AggregateStateType> = BaseDomainEventPayload<T> & {snapshot: Aggregate<T, AggregateStateType>};
@@ -20,7 +21,7 @@ export interface InitializingDomainEvent<
 	AggregateStateType,
 	EventMessageType extends InitializingDomainEventPayload<AggregateTypeName, AggregateStateType>,
 > extends DomainEvent<AggregateTypeName, AggregateStateType, EventMessageType> {
-	readonly snapshot: Aggregate<AggregateTypeName, AggregateStateType>;
+	getSnapshot(): Aggregate<AggregateTypeName, AggregateStateType>;
 }
 
 export type BasicDomainEventPayload<T extends AggregateType> = BaseDomainEventPayload<T> & {newAggregateVersion: number};
@@ -30,7 +31,6 @@ export interface BasicDomainEvent<
 	AggregateStateType,
 	EventMessageType extends BasicDomainEventPayload<AggregateTypeName>,
 > extends DomainEvent<AggregateTypeName, AggregateStateType, EventMessageType> {
-	readonly newAggregateVersion: number;
 	apply(s: AggregateStateType): AggregateStateType;
 }
 
@@ -41,7 +41,7 @@ export interface SnapshotDomainEvent<
 	AggregateStateType,
 	EventMessageType extends SnapshotDomainEventPayload<AggregateTypeName, AggregateStateType>,
 > extends BasicDomainEvent<AggregateTypeName, AggregateStateType, EventMessageType> {
-	readonly snapshot: Aggregate<AggregateTypeName, AggregateStateType>;
+	getSnapshot(): Aggregate<AggregateTypeName, AggregateStateType>;
 }
 
 export function isDomainEvent<T extends string, S>(event: Event<T, any>): event is DomainEvent<T, S, any> {
@@ -53,11 +53,11 @@ export function isInitializingDomainEvent<T extends string, S>(domainEvent: Doma
 }
 
 export function isBasicDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is BasicDomainEvent<T, S, any> {
-	return 'newAggregateVersion' in domainEvent;
+	return 'getAggregateVersion' in domainEvent;
 }
 
 export function isSnapshotDomainEvent<T extends string, S>(domainEvent: DomainEvent<T, any, any>): domainEvent is SnapshotDomainEvent<T, S, any> {
-	return !domainEvent.isInitial() && 'snapshot' in domainEvent;
+	return !domainEvent.isInitial() && 'getSnapshot' in domainEvent;
 }
 
 export class GenericInitializingDomainEvent<
@@ -65,22 +65,22 @@ export class GenericInitializingDomainEvent<
 	AggregateStateType,
 	T extends InitializingDomainEventPayload<AggregateTypeName, AggregateStateType>,
 > implements InitializingDomainEvent<AggregateTypeName, AggregateStateType, T> {
-	public readonly type: AggregateTypeName;
-	public readonly aggregateId: string;
-	public readonly snapshot: Aggregate<AggregateTypeName, AggregateStateType>;
-	public readonly metadata: EventMetadata;
-	public readonly content: T;
-
 	constructor(
 		public readonly id: string,
-		payload: T,
-		metadata: EventMetadata,
-	) {
-		this.type = payload.aggregateTypeName;
-		this.snapshot = payload.snapshot;
-		this.aggregateId = payload.aggregateId;
-		this.metadata = metadata;
-		this.content = payload;
+		public readonly payload: T,
+		public readonly metadata: EventMetadata,
+	) {}
+
+	getType(): AggregateTypeName {
+		return this.payload.aggregateTypeName;
+	}
+
+	getPayload(): T {
+		return this.payload;
+	}
+
+	getMetadata(): EventMetadata {
+		return this.metadata;
 	}
 
 	compare(t1: Event<AggregateTypeName, T>, t2: Event<AggregateTypeName, T>): -1 | 0 | 1 {
@@ -92,7 +92,15 @@ export class GenericInitializingDomainEvent<
 	}
 
 	getAggregateId(): string {
-		return this.snapshot.id;
+		return this.payload.snapshot.id;
+	}
+
+	getAggregateVersion(): number {
+		return this.payload.snapshot.version;
+	}
+
+	getSnapshot(): Aggregate<AggregateTypeName, AggregateStateType> {
+		return this.payload.snapshot;
 	}
 }
 
@@ -101,25 +109,23 @@ export class GenericBasicDomainEvent<
 	AggregateStateType,
 	T extends BasicDomainEventPayload<AggregateTypeName>,
 > implements BasicDomainEvent<AggregateTypeName, AggregateStateType, T> {
-	public readonly aggregateId: string;
-	public readonly type: AggregateTypeName;
-	public readonly metadata: EventMetadata;
-	public readonly newAggregateVersion: number;
-	public readonly content: T;
-	protected readonly applicator: (s: AggregateStateType) => AggregateStateType;
-
 	constructor(
 		public readonly id: string,
-		payload: T,
-		metadata: EventMetadata,
-		applicator: (s: AggregateStateType) => AggregateStateType,
-	) {
-		this.type = payload.aggregateTypeName;
-		this.metadata = metadata;
-		this.newAggregateVersion = payload.newAggregateVersion;
-		this.aggregateId = payload.aggregateId;
-		this.content = payload;
-		this.applicator = applicator;
+		public readonly payload: T,
+		public readonly metadata: EventMetadata,
+		private readonly applicator: (s: AggregateStateType) => AggregateStateType,
+	) {}
+
+	getType(): AggregateTypeName {
+		return this.payload.aggregateTypeName;
+	}
+
+	getPayload(): T {
+		return this.payload;
+	}
+
+	getMetadata(): EventMetadata {
+		return this.metadata;
 	}
 
 	isInitial(): this is InitializingDomainEvent<AggregateTypeName, AggregateStateType, any> {
@@ -131,7 +137,11 @@ export class GenericBasicDomainEvent<
 	}
 
 	getAggregateId(): string {
-		return this.aggregateId;
+		return this.payload.aggregateId;
+	}
+
+	getAggregateVersion(): number {
+		return this.payload.newAggregateVersion;
 	}
 
 	apply(s: AggregateStateType): AggregateStateType {

@@ -1,5 +1,5 @@
 export interface Message<T> {
 	readonly id: string;
 	readonly metadata: Record<string, unknown>;
-	readonly content: T;
+	readonly payload: T;
 }
