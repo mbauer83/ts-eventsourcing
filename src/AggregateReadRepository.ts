@@ -45,7 +45,7 @@ export class AggregateReadRepository<AggregateType extends string> {
 		const filterData: AggregateEventFilterData<AggregateType> = {
 			type: this.aggregateType,
 			dateRange: noneDateRange,
-			aggregateId: aggregate.id,
+			aggregateId: new Some<string>(aggregate.id),
 			versionRange: new Some<VersionRange>(versionRange),
 		};
 
@@ -64,7 +64,7 @@ export class AggregateReadRepository<AggregateType extends string> {
 		const filterData: AggregateEventFilterData<AggregateType> = {
 			type: this.aggregateType,
 			dateRange: noneDateRange,
-			aggregateId: id,
+			aggregateId: new Some<string>(id),
 			versionRange: noneVersionRange,
 		};
 		return this.eventStorage.produceEvents(filterData).flatMap<Aggregate<AggregateType, unknown>>(

@@ -20,7 +20,7 @@ export type EventFilterData<T extends string> = {
 };
 
 export type AggregateEventFilterData<T extends AggregateType> = EventFilterData<T> & {
-	aggregateId: string;
+	aggregateId: Optional<string>;
 	versionRange: Optional<VersionRange>;
 };
 
@@ -70,6 +70,7 @@ export class InMemoryDomainEventStorage implements EventStorage {
 				const recordForId = record[evt.getAggregateId()] ?? [];
 				recordForId.push(evt);
 				record[evt.getAggregateId()] = recordForId;
+				this.allDomainEventsByTypeAndId[eventType] = record;
 				if (evt.isInitial()) {
 					const aggregateId = evt.getAggregateId();
 					if (eventType in this.initialDomainEventsByTypeAndId) {
@@ -222,7 +223,25 @@ export class InMemoryDomainEventStorage implements EventStorage {
 		// for the aggregate if it exists, otherwise we return all events for the aggregate (initial + basic)
 		if (forAggregate) {
 			const snapshotEvents = this.snapshotDomainEventsByTypeAndId[type] ?? {};
-			const snapshotsForId = snapshotEvents[aggregateId] ?? [];
+			const flatMapDomainEvents = (snapshotEvents: Record<string, Array<DomainEvent<any, any, any>>>): Array<DomainEvent<any, any, any>> => {
+				const snapshotEventsArray: Array<DomainEvent<any, any, any>> = [];
+				for (const [, value] of Object.entries(snapshotEvents)) {
+					snapshotEventsArray.push(...value);
+				}
+
+				return snapshotEventsArray;
+			};
+
+			const snapshotsForId = aggregateId.match(
+				aggId => {
+					const array = snapshotEvents[aggId] ?? [];
+					return array;
+				},
+				() => {
+					const mapped = flatMapDomainEvents(snapshotEvents) as Array<SnapshotDomainEvent<any, any, any>>;
+					return mapped;
+				},
+			);
 			const dateRangeFilteredSnapshots = dateRangeOption.match(
 				dateRange => snapshotsForId.filter(
 					event => dateRange.isInRange(event.getMetadata().timestampMs)),
@@ -244,7 +263,7 @@ export class InMemoryDomainEventStorage implements EventStorage {
 				const latestSnapshot = sortedSnapshots[0];
 				const latestSnapshotTime = latestSnapshot.getMetadata().timestampMs;
 				const basicEvents = this.allDomainEventsByTypeAndId[type] ?? {};
-				const basicEventsForId = basicEvents[aggregateId] ?? [];
+				const basicEventsForId = aggregateId.match(aggId => basicEvents[aggId] ?? [], () => flatMapDomainEvents(basicEvents) as Array<DomainEvent<T, unknown, any>>);
 				const dateRangeFilteredBasicEvents = dateRangeOption.match(
 					dateRange => basicEventsForId.filter(
 						event => {
@@ -274,7 +293,10 @@ export class InMemoryDomainEventStorage implements EventStorage {
 
 			// No snapshots, return all events for aggregate and id
 			const allDomainEventsForType = this.allDomainEventsByTypeAndId[type] ?? {};
-			const allDomainEventsForTypeAndId = allDomainEventsForType[aggregateId] ?? [];
+			const allDomainEventsForTypeAndId = aggregateId.match(
+				aggId => allDomainEventsForType[aggId] ?? [],
+				() => flatMapDomainEvents(allDomainEventsForType) as Array<DomainEvent<T, unknown, any>>,
+			);
 			const dateRangeFilteredEvents = dateRangeOption.match(
 				dateRange => allDomainEventsForTypeAndId.filter(
 					event => dateRange.isInRange(event.getMetadata().timestampMs),
