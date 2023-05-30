@@ -13,7 +13,7 @@ import {
 	isInitializingDomainEvent,
 	type SnapshotDomainEvent,
 	isSnapshotDomainEvent,
-} from './DomainEvent';
+} from './DomainEvent.js';
 
 export class AggregateReadRepository<AggregateType extends string> {
 	private readonly aggregateOptionsById = new Map<string, Optional<Aggregate<AggregateType, unknown>>>();
