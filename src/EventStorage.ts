@@ -32,22 +32,26 @@ export interface EventStorage {
 		filterData: U,
 	): Task<Error, Generator<EventStorageGeneratorResult<T, U>>>;
 
-	produceEventsAsync<T extends string, U extends (EventFilterData<T> | AggregateEventFilterData<T>)>(
-		filterData: U,
-	): AsyncTask<Error, AsyncGenerator<EventStorageGeneratorResult<T, U>>>;
-
 	produceEventsForTypes<T extends string[], U extends Array<(EventFilterData<T[number]> | AggregateEventFilterData<T[number]>)>>(
 		filterData: U,
 	): Task<Error, Record<T[keyof T extends number ? number : never], Generator<EventStorageGeneratorResult<T[number], U[number]>>>>;
+
+	storeEvents(...events: Array<Event<any, any>>): Task<Error, void>;
+}
+
+export interface AsyncEventStorage {
+	produceEventsAsync<T extends string, U extends (EventFilterData<T> | AggregateEventFilterData<T>)>(
+		filterData: U,
+	): AsyncTask<Error, AsyncGenerator<EventStorageGeneratorResult<T, U>>>;
 
 	produceEventsForTypesAsync<T extends AggregateType[], U extends Array<(EventFilterData<T[number]> | AggregateEventFilterData<T[number]>)>>(
 		filterData: U,
 	): AsyncTask<Error, Record<T[keyof T extends number ? number : never], AsyncGenerator<EventStorageGeneratorResult<T[number], U[number]>>>>;
 
-	storeEvents(...events: Array<Event<any, any>>): AsyncTask<Error, void>;
+	storeEventsAsync(...events: Array<Event<any, any>>): AsyncTask<Error, void>;
 }
 
-export class InMemoryDomainEventStorage implements EventStorage {
+export class InMemoryDomainEventStorage implements EventStorage, AsyncEventStorage {
 	private readonly allApplicationEventsByType: Record<string, Array<Event<any, any>>> = {};
 	private readonly allDomainEventsByTypeAndId: Record<string, Record<string, Array<DomainEvent<any, any, any>>>> = {};
 
@@ -55,60 +59,14 @@ export class InMemoryDomainEventStorage implements EventStorage {
 	private snapshotDomainEventsByTypeAndId: Record<string, Record<string, Array<SnapshotDomainEvent<any, any, any>>>> = {};
 	private initialDomainEventsByTypeAndId: Record<string, Record<string, InitializingDomainEvent<any, any, any>>> = {};
 
-	storeEvents(...events: Array<Event<any, any>>): AsyncTask<Error, void> {
-		const resolver = async (..._: any[]) => {
-			for (const evt of events) {
-				const eventType = evt.getType() as string;
-				if (!isDomainEvent(evt)) {
-					const list = this.allApplicationEventsByType[eventType] ?? [];
-					list.push(evt);
-					this.allApplicationEventsByType[eventType] = list;
-					continue;
-				}
+	storeEventsAsync(...events: Array<Event<any, any>>): AsyncTask<Error, void> {
+		const resolver = this.storageResolver(events);
+		return new AsyncTask(async () => resolver());
+	}
 
-				const record = this.allDomainEventsByTypeAndId[eventType] ?? {};
-				const recordForId = record[evt.getAggregateId()] ?? [];
-				recordForId.push(evt);
-				record[evt.getAggregateId()] = recordForId;
-				this.allDomainEventsByTypeAndId[eventType] = record;
-				if (evt.isInitial()) {
-					const aggregateId = evt.getAggregateId();
-					if (eventType in this.initialDomainEventsByTypeAndId) {
-						const byAggregateId = this.initialDomainEventsByTypeAndId[eventType];
-						if (aggregateId in byAggregateId) {
-							const error = new Error(`Initializing event already exists for type [${eventType}] and id [${aggregateId}].`);
-							return new Left<Error, void>(error);
-						}
-
-						byAggregateId[aggregateId] = evt;
-						this.initialDomainEventsByTypeAndId[eventType] = byAggregateId;
-					}
-
-					continue;
-				}
-
-				if (isSnapshotDomainEvent(evt)) {
-					const aggregate = (evt as SnapshotDomainEvent<any, any, any>).getSnapshot();
-					const aggregateId = aggregate.id;
-					const byAggregateId = this.snapshotDomainEventsByTypeAndId[eventType] ?? {};
-					const listForAggregateId = byAggregateId[aggregateId] ?? [];
-					listForAggregateId.push(evt as SnapshotDomainEvent<any, any, any>);
-					byAggregateId[aggregateId] = listForAggregateId;
-					this.snapshotDomainEventsByTypeAndId[eventType] = byAggregateId;
-				}
-
-				const aggregateId = evt.getAggregateId();
-				const byAggregateId = this.basicDomainEventsByTypeAndId[eventType] ?? {};
-				const listForAggregateId: Array<BasicDomainEvent<any, any, any>> = byAggregateId[aggregateId] ?? [];
-				listForAggregateId.push(evt as SnapshotDomainEvent<any, any, any>);
-				byAggregateId[aggregateId] = listForAggregateId;
-				this.basicDomainEventsByTypeAndId[eventType] = byAggregateId;
-			}
-
-			return new Right<Error, void>(undefined);
-		};
-
-		return new AsyncTask(resolver);
+	storeEvents(...events: Array<Event<any, any>>): Task<Error, void> {
+		const resolver = this.storageResolver(events);
+		return new Task(() => resolver());
 	}
 
 	produceEvents<T extends string, U extends (EventFilterData<T> | AggregateEventFilterData<T>)>(
@@ -327,4 +285,56 @@ export class InMemoryDomainEventStorage implements EventStorage {
 
 		return allEventsForTypeDateFiltered as Array<Event<T, unknown>>;
 	}
+
+	private readonly storageResolver = (events: Array<Event<any, any>>) => (..._: any[]) => {
+		for (const evt of events) {
+			const eventType = evt.getType() as string;
+			if (!isDomainEvent(evt)) {
+				const list = this.allApplicationEventsByType[eventType] ?? [];
+				list.push(evt);
+				this.allApplicationEventsByType[eventType] = list;
+				continue;
+			}
+
+			const record = this.allDomainEventsByTypeAndId[eventType] ?? {};
+			const recordForId = record[evt.getAggregateId()] ?? [];
+			recordForId.push(evt);
+			record[evt.getAggregateId()] = recordForId;
+			this.allDomainEventsByTypeAndId[eventType] = record;
+			if (evt.isInitial()) {
+				const aggregateId = evt.getAggregateId();
+				if (eventType in this.initialDomainEventsByTypeAndId) {
+					const byAggregateId = this.initialDomainEventsByTypeAndId[eventType];
+					if (aggregateId in byAggregateId) {
+						const error = new Error(`Initializing event already exists for type [${eventType}] and id [${aggregateId}].`);
+						return new Left<Error, void>(error);
+					}
+
+					byAggregateId[aggregateId] = evt;
+					this.initialDomainEventsByTypeAndId[eventType] = byAggregateId;
+				}
+
+				continue;
+			}
+
+			if (isSnapshotDomainEvent(evt)) {
+				const aggregate = (evt as SnapshotDomainEvent<any, any, any>).getSnapshot();
+				const aggregateId = aggregate.id;
+				const byAggregateId = this.snapshotDomainEventsByTypeAndId[eventType] ?? {};
+				const listForAggregateId = byAggregateId[aggregateId] ?? [];
+				listForAggregateId.push(evt as SnapshotDomainEvent<any, any, any>);
+				byAggregateId[aggregateId] = listForAggregateId;
+				this.snapshotDomainEventsByTypeAndId[eventType] = byAggregateId;
+			}
+
+			const aggregateId = evt.getAggregateId();
+			const byAggregateId = this.basicDomainEventsByTypeAndId[eventType] ?? {};
+			const listForAggregateId: Array<BasicDomainEvent<any, any, any>> = byAggregateId[aggregateId] ?? [];
+			listForAggregateId.push(evt as SnapshotDomainEvent<any, any, any>);
+			byAggregateId[aggregateId] = listForAggregateId;
+			this.basicDomainEventsByTypeAndId[eventType] = byAggregateId;
+		}
+
+		return new Right<Error, void>(undefined);
+	};
 }
